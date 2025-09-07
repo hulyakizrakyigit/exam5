@@ -12,6 +12,12 @@ typedef struct s_map {
     char **grid;
 } t_map;
 
+// Helper function to check if character is whitespace (excluding newline for first line parsing)
+int is_whitespace(char c) {
+    return (c == ' ' || c == '\t' || c == '\r' || 
+            c == '\v' || c == '\f');
+}
+
 int init_map(t_map *map, FILE *file) {
     if (!file || !map)
         return (0);
@@ -40,13 +46,33 @@ int init_map(t_map *map, FILE *file) {
         return (0);
     }
     
-    if (read < i + 3) {
+    // Skip whitespace if present (support both formats: "9.ox" and "9 . o x")
+    while (is_whitespace(line[i])) {
+        i++;
+    }
+    
+    // Check if we have enough characters
+    int remaining = read - i;
+    if (remaining < 3) {
         free(line);
         return (0);
     }
     
+    // Parse characters (with or without spaces)
     map->empty = line[i++];
+    
+    // Skip whitespace
+    while (is_whitespace(line[i])) {
+        i++;
+    }
+    
     map->obst = line[i++];
+    
+    // Skip whitespace  
+    while (is_whitespace(line[i])) {
+        i++;
+    }
+    
     map->full = line[i++];
     
     if (!map->empty || !map->obst || !map->full || 
@@ -152,6 +178,20 @@ void find_biggest_square(t_map *map) {
                     max_size = dp[i][j];
                     best_top = top;
                     best_left = left;
+                }
+            }
+        }
+    }
+    
+    // If no square found, find first empty cell for 1x1 square
+    if (max_size == 0) {
+        for (int i = 0; i < map->row && max_size == 0; i++) {
+            for (int j = 0; j < map->col; j++) {
+                if (map->grid[i][j] == map->empty) {
+                    max_size = 1;
+                    best_top = i;
+                    best_left = j;
+                    break;
                 }
             }
         }

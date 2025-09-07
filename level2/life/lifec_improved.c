@@ -9,14 +9,14 @@ typedef struct {
 } pen_t;
 
 char **create_board(int w, int h) {
-    if (w <= 0 || h <= 0) return NULL;
+    if (w <= 0 || h <= 0) return NULL;  // Parametre validasyonu
     
     char **board = malloc(sizeof(char *) * h);
-    if (!board) return NULL;
+    if (!board) return NULL;  // NULL kontrolü
     
     for (int i = 0; i < h; i++) {
-        board[i] = calloc(sizeof(char), w);
-        if (!board[i]) {
+        board[i] = malloc(sizeof(char) * w);  // calloc gereksiz
+        if (!board[i]) {  // Başarısız malloc kontrolü
             for (int j = 0; j < i; j++)
                 free(board[j]);
             free(board);
@@ -29,7 +29,7 @@ char **create_board(int w, int h) {
 }
 
 void free_board(char **board, int h) {
-    if (!board) return;
+    if (!board) return;  // NULL kontrolü
     for (int i = 0; i < h; i++)
         free(board[i]);
     free(board);
@@ -53,7 +53,7 @@ int count_neighbors(char **board, int y, int x, int w, int h) {
 
 void iter_game(char **board, int w, int h) {
     char **new_board = create_board(w, h);
-    if (!new_board) return;
+    if (!new_board) return;  // Hata kontrolü
     
     for (int y = 0; y < h; y++) {
         for (int x = 0; x < w; x++) {
@@ -67,9 +67,11 @@ void iter_game(char **board, int w, int h) {
             }
         }
     }
+    
     for (int y = 0; y < h; y++)
         for (int x = 0; x < w; x++)
             board[y][x] = new_board[y][x];
+    
     free_board(new_board, h);
 }
 
@@ -94,7 +96,7 @@ int main(int ac, char **av) {
         return 1;
 
     char **board = create_board(w, h);
-    if (!board)
+    if (!board)  // Başarısız board oluşturma kontrolü
         return 1;
         
     pen_t pen = {0, 0, 0};

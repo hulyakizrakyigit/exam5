@@ -313,17 +313,6 @@ void print_map() {
     }
 }
 
-// Free the map memory
-void free_map() {
-    if (map) {
-        for (int i = 0; i < rows; i++) {
-            if (map[i]) free(map[i]);
-        }
-        free(map);
-        map = NULL;
-    }
-}
-
 // Solve one BSQ file
 void solve_bsq(FILE *file) {
     char *line = NULL;
@@ -340,7 +329,6 @@ void solve_bsq(FILE *file) {
     // Read map
     if (!read_map(file)) {
         fprintf(stderr, "map error\n");
-        free_map(); // Free any allocated memory
         return;
     }
     
@@ -349,9 +337,6 @@ void solve_bsq(FILE *file) {
     
     // Print result
     print_map();
-    
-    // Free memory
-    free_map();
 }
 
 int main(int argc, char **argv) {
