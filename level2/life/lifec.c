@@ -15,7 +15,7 @@ char **create_board(int w, int h) {
     if (!board) return NULL;
     
     for (int i = 0; i < h; i++) {
-        board[i] = calloc(sizeof(char), w);
+        board[i] = calloc(w + 1, sizeof(char)); // +1, '\0' için
         if (!board[i]) {
             for (int j = 0; j < i; j++)
                 free(board[j]);
@@ -24,6 +24,7 @@ char **create_board(int w, int h) {
         }
         for (int j = 0; j < w; j++)
             board[i][j] = ' ';
+        board[i][w] = '\0'; // Satırın sonuna null karakter ekle
     }
     return board;
 }
@@ -71,15 +72,48 @@ void iter_game(char **board, int w, int h) {
         for (int x = 0; x < w; x++)
             board[y][x] = new_board[y][x];
     free_board(new_board, h);
+
+    
 }
 
-void print_board(char **board, int w, int h) {
-    for (int y = 0; y < h; y++) {
-        for (int x = 0; x < w; x++)
-            putchar(board[y][x]);
+// void print_board(char **board, int w, int h) {
+//     for (int y = 0; y < h; y++) {
+//         for (int x = 0; x < w; x++)
+//             putchar(board[y][x]);
+//         putchar('\n');
+//     }
+// }
+
+void print_board(char **board, int w, int h){
+    for(int y = 0; y < h; y++){
+        // Bu satırda ilk 'O'yu bul (left trim için)
+        int first_O = -1;
+        for(int x = 0; x < w; x++){
+            if(board[y][x] == 'O'){
+                first_O = x;
+                break;
+            }
+        }
+        
+        // Eğer satırda O varsa, ilk O'dan başlayarak bas
+        if(first_O >= 0){
+            int prev_space = 0;
+            for(int x = first_O; x < w; x++){
+                if(board[y][x] == ' '){
+                    if(!prev_space){  // Sadece ilk space'i bas
+                        putchar(' ');
+                        prev_space = 1;
+                    }
+                } else {
+                    putchar(board[y][x]);  // 'O' bas
+                    prev_space = 0;
+                }
+            }
+        }
         putchar('\n');
     }
 }
+
 
 int main(int ac, char **av) {
     if (ac != 4)
@@ -101,9 +135,6 @@ int main(int ac, char **av) {
     char cmd;
 
     while (read(0, &cmd, 1) > 0) {
-        if (pen.is_draw)
-            board[pen.y][pen.x] = 'O';
-
         switch (cmd) {
             case 'w': if (pen.y > 0) pen.y--; break;
             case 's': if (pen.y < h - 1) pen.y++; break;
@@ -112,7 +143,7 @@ int main(int ac, char **av) {
             case 'x': pen.is_draw = !pen.is_draw; break;
         }
         
-        // Switch-case sonrası çizim kontrolü
+        // Hareket sonrası çizim kontrolü
         if (pen.is_draw)
             board[pen.y][pen.x] = 'O';
     }

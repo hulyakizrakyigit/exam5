@@ -40,7 +40,7 @@ char** create_board(int w, int h){
         return NULL;
     
     for(int i = 0; i < h; i++){
-        board[i] = calloc(sizeof(char), w);
+        board[i] = calloc(sizeof(char), w + 1);  // +1 for null terminator
         if(!board[i]){
         for(int j = 0; j < i; j++){
             free(board[j]);
@@ -50,6 +50,7 @@ char** create_board(int w, int h){
         for(int j = 0; j < w; j++){
             board[i][j] = ' ';
         }
+        board[i][w] = '\0';  // Null terminate string
     }
     return board;
 }
@@ -72,6 +73,7 @@ void iter_game(char **board, int w, int h){
                     newboard[y][x] = 'O';
             }
         }
+        newboard[y][w] = '\0';  // Null terminate each row
     }
     for(int y = 0; y < h; y++){
         for(int x = 0; x < w; x++){
@@ -82,66 +84,31 @@ void iter_game(char **board, int w, int h){
 }
 
 void print_board(char **board, int w, int h){
-    // İçerik var mı kontrol et
-    int has_any_content = 0;
-    for(int y = 0; y < h && !has_any_content; y++){
-        for(int x = 0; x < w; x++){
-            if(board[y][x] == 'O'){
-                has_any_content = 1;
-                break;
-            }
-        }
-    }
-    
-    // Hiç içerik yoksa normal bas
-    if(!has_any_content){
-        for(int y = 0; y < h; y++){
-            for(int x = 0; x < w; x++){
-                putchar(board[y][x]);
-            }
-            putchar('\n');
-        }
-        return;
-    }
-    
-    // Her satır için ayrı ayrı sol trim + space compression
     for(int y = 0; y < h; y++){
-        // Bu satırda içerik var mı kontrol et
-        int row_has_content = 0;
+        // Bu satırda ilk 'O'yu bul (left trim için)
+        int first_O = -1;
         for(int x = 0; x < w; x++){
             if(board[y][x] == 'O'){
-                row_has_content = 1;
+                first_O = x;
                 break;
             }
         }
         
-        if(row_has_content){
-            // Bu satırda ilk 'O' karakterini bul
-            int first_O = -1;
-            for(int x = 0; x < w; x++){
-                if(board[y][x] == 'O'){
-                    first_O = x;
-                    break;
-                }
-            }
-            
-            // İlk O'ya kadar olan boşlukları atla, sonrasını bas + space compression
-            int prev_was_space = 0;
+        // Eğer satırda O varsa, ilk O'dan başlayarak bas
+        if(first_O >= 0){
+            int prev_space = 0;
             for(int x = first_O; x < w; x++){
-                char c = board[y][x];
-                if(c == ' '){
-                    if(!prev_was_space){  // İlk space'i bas
+                if(board[y][x] == ' '){
+                    if(!prev_space){  // Sadece ilk space'i bas
                         putchar(' ');
-                        prev_was_space = 1;
+                        prev_space = 1;
                     }
-                    // Sonraki consecutive space'leri atla
                 } else {
-                    putchar(c);  // 'O' karakterini bas
-                    prev_was_space = 0;
+                    putchar(board[y][x]);  // 'O' bas
+                    prev_space = 0;
                 }
             }
         }
-        // İçerik yoksa hiçbir şey basma (sadece newline)
         putchar('\n');
     }
 }
