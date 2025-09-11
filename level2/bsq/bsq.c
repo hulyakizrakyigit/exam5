@@ -3,6 +3,13 @@
 #include <stdio.h>
 #include <fcntl.h>
 
+/*
+ * This program supports both formats for the first line of the map:
+ * - Combined:   9.ox
+ * - Spaced:     9 . o x
+ * The parser will correctly extract the row count and the three map characters in both cases.
+ */
+
 typedef struct s_map {
     int row;
     int col;
@@ -18,113 +25,154 @@ int is_whitespace(char c) {
             c == '\v' || c == '\f');
 }
 
+// Helper function to check if character is printable
+int is_printable(char c) {
+    return (c >= 32 && c <= 126);
+}
+
 int init_map(t_map *map, FILE *file) {
     if (!file || !map)
         return (0);
     
-    size_t len = 0;
-    ssize_t read;
     char *line = NULL;
+    size_t len = 0;
     
-    read = getline(&line, &len, file);
-    if (read == -1) {
+    if (getline(&line, &len, file) == -1) {
         free(line);
         return (0);
     }
     
-    int i = 0;
+    // Parse: "9.ox" or "9 . o x" format
+    char *ptr = line;
     map->row = 0;
     
-    // Parse number
-    while (line[i] >= '0' && line[i] <= '9') {
-        map->row = map->row * 10 + (line[i] - '0');
-        i++;
+    // Manual string to integer conversion
+    while (*ptr >= '0' && *ptr <= '9') {
+        map->row = map->row * 10 + (*ptr - '0');
+        ptr++;
     }
     
-    if (i == 0 || map->row <= 0) {
+    if (map->row <= 0) {
         free(line);
         return (0);
     }
     
-    // Skip whitespace if present (support both formats: "9.ox" and "9 . o x")
-    while (is_whitespace(line[i])) {
-        i++;
-    }
-    
-    // Check if we have enough characters
-    int remaining = read - i;
-    if (remaining < 3) {
-        free(line);
-        return (0);
-    }
-    
-    // Parse characters (with or without spaces)
-    map->empty = line[i++];
-    
-    // Skip whitespace
-    while (is_whitespace(line[i])) {
-        i++;
-    }
-    
-    map->obst = line[i++];
-    
-    // Skip whitespace  
-    while (is_whitespace(line[i])) {
-        i++;
-    }
-    
-    map->full = line[i++];
-    
-    if (!map->empty || !map->obst || !map->full || 
-        map->empty == map->obst || map->empty == map->full || map->obst == map->full) {
-        free(line);
-        return (0);
-    }
+    // Skip whitespace and parse 3 characters
+    while (is_whitespace(*ptr)) ptr++;
+    map->empty = *ptr++;
+    while (is_whitespace(*ptr)) ptr++;
+    map->obst = *ptr++;
+    while (is_whitespace(*ptr)) ptr++;
+    map->full = *ptr;
     
     free(line);
-    return (1);
+    
+    // Validate: all different, non-null, and printable
+    return (map->empty && map->obst && map->full && 
+            map->empty != map->obst && map->empty != map->full && map->obst != map->full &&
+            is_printable(map->empty) && is_printable(map->obst) && is_printable(map->full));
 }
+
+/*
+ * Eğer sadece birleşik format (ör: 9.ox) desteklenecekse,
+ * init_map fonksiyonu aşağıdaki gibi çok daha basit yazılabilir:
+ *
+ * int init_map_compact(t_map *map, FILE *file) {
+ *     if (!file || !map)
+ *         return 0;
+ *     char *line = NULL;
+ *     size_t len = 0;
+ *     if (getline(&line, &len, file) == -1) {
+ *         free(line);
+ *         return 0;
+ *     }
+ *     // Satır sayısını oku
+ *     int i = 0;
+ *     map->row = 0;
+ *     while (line[i] >= '0' && line[i] <= '9') {
+ *         map->row = map->row * 10 + (line[i] - '0');
+ *         i++;
+ *     }
+ *     // Karakterler
+ *     map->empty = line[i++];
+ *     map->obst  = line[i++];
+ *     map->full  = line[i++];
+ *     free(line);
+ *     // Karakterlerin farklı ve printable olması kontrolü eklenmeli
+ *     return (map->row > 0 && map->empty && map->obst && map->full &&
+ *             map->empty != map->obst && map->empty != map->full && map->obst != map->full &&
+ *             is_printable(map->empty) && is_printable(map->obst) && is_printable(map->full));
+ * }
+ */
 
 int read_grid(t_map *map, FILE *file) {
     if (!map || !file)
         return (0);
     
-    size_t len = 0;
-    ssize_t read;
-    char *line = NULL;
-    int row = 0;
-    
     map->grid = calloc(map->row, sizeof(char *));
     if (!map->grid)
         return (0);
     
-    while ((read = getline(&line, &len, file)) != -1 && row < map->row) {
-        if (row == 0)
+    char *line = NULL;
+    size_t len = 0;
+    int has_empty = 0; // Track if we have at least one empty space
+    
+    for (int i = 0; i < map->row; i++) {
+        ssize_t read = getline(&line, &len, file);
+        if (read == -1) {
+            free(line);
+            return (0);
+        }
+        
+        // Check if line ends with newline (except possibly the last line)
+        if (read > 0 && line[read-1] != '\n') {
+            free(line);
+            return (0);
+        }
+        
+        // Set column count from first row, validate others
+        if (i == 0)
             map->col = read - 1;
         else if (read - 1 != map->col) {
             free(line);
             return (0);
         }
         
-        map->grid[row] = malloc(sizeof(char) * (map->col + 1));
-        if (!map->grid[row]) {
+        // Check minimum size
+        if (map->col <= 0) {
             free(line);
             return (0);
         }
         
-        for (int col = 0; col < map->col; col++) {
-            if (line[col] != map->empty && line[col] != map->obst) {
+        // Allocate and copy line (removing newline)
+        map->grid[i] = malloc(map->col + 1);
+        if (!map->grid[i]) {
+            free(line);
+            return (0);
+        }
+        
+        // Copy and validate characters in one loop
+        for (int j = 0; j < map->col; j++) {
+            if (line[j] != map->empty && line[j] != map->obst) {
                 free(line);
                 return (0);
             }
-            map->grid[row][col] = line[col];
+            if (line[j] == map->empty)
+                has_empty = 1;
+
+            map->grid[i][j] = line[j];
         }
-        map->grid[row][map->col] = '\0';
-        row++;
+        map->grid[i][map->col] = '\0';
     }
     
     free(line);
-    return (row == map->row);
+    
+    // Check if we have at least one empty space
+    if (!has_empty) {
+        return (0);
+    }
+    
+    return (1);
 }
 
 void free_map(t_map *map) {
@@ -215,16 +263,16 @@ void print_grid(t_map *map) {
         return;
     
     for (int i = 0; i < map->row; i++) {
-        printf("%s\n", map->grid[i]);
+        fputs(map->grid[i], stdout);
+        fputs("\n", stdout);
     }
 }
 
 int main(int ac, char **av) {
     if (ac == 1) {
         t_map map = {0};
-        
         if (!init_map(&map, stdin) || !read_grid(&map, stdin)) {
-            fprintf(stderr, "map error\n");
+            fprintf(stderr, "Error: invalid map\n");
             free_map(&map);
             return (1);
         }
@@ -232,19 +280,16 @@ int main(int ac, char **av) {
         print_grid(&map);
         free_map(&map);
         return (0);
-    }
-    else {
+    } else {
         for (int i = 1; i < ac; i++) {
             t_map map = {0};
             FILE *file = fopen(av[i], "r");
-            
             if (!file) {
-                fprintf(stderr, "map error\n");
+                fprintf(stderr, "Error: cannot open file\n");
                 continue;
             }
-            
             if (!init_map(&map, file) || !read_grid(&map, file)) {
-                fprintf(stderr, "map error\n");
+                fprintf(stderr, "Error: invalid map\n");
                 free_map(&map);
                 fclose(file);
             } else {
@@ -253,9 +298,8 @@ int main(int ac, char **av) {
                 free_map(&map);
                 fclose(file);
             }
-            
             if (i < ac - 1)
-                printf("\n");
+                fputs("\n", stdout);
         }
         return (0);
     }
