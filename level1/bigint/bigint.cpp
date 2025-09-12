@@ -339,19 +339,7 @@
 #include "bigint.hpp"
 #include <sstream>
 
-// Güvenli string to unsigned int dönüşümü
-unsigned int stringToUINT(const std::string& str) {
-    if (str.empty()) return 0;
- 
-    std::stringstream ss(str);
-    unsigned int res = 0;
-    ss >> res;
-    
-    // Eğer stringstream başarısız olursa 0 döndür
-    if (ss.fail()) return 0;
-    
-    return res;
-}
+
 
 // Constructors
 bigint::bigint(): val("0") {}
@@ -409,6 +397,14 @@ std::string bigint::addstring(const std::string& s1, const std::string& s2) {
         i--; j--;
     }
     std::reverse(final.begin(), final.end());
+
+    size_t first_non_zero = final.find_first_not_of('0');
+    if (first_non_zero == std::string::npos) {
+        final = "0";
+    } else {
+        final = final.substr(first_non_zero);
+    }
+    
     return final;
 }
 
@@ -458,12 +454,12 @@ bigint bigint::operator>>(unsigned int n) {
 }
 
 bigint bigint::operator<<(const bigint& b) {
-    unsigned int n = stringToUINT(b.val);
+    unsigned int n = std::stoul(b.val);
     return *this << n;
 }
 
 bigint bigint::operator>>(const bigint& b) {
-    unsigned int n = stringToUINT(b.val);
+    unsigned int n = std::stoul(b.val);
     return *this >> n;
 }
 
