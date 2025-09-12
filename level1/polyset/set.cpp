@@ -1,5 +1,7 @@
 #include "set.hpp"
 
+set::set() : bag(NULL) {}
+
 set::set(searchablebag* bag) : bag(bag) {}
 
 // set::set(const set& other) : bag(other.bag) {} // Shallow copy
@@ -79,7 +81,11 @@ void set::insert(int *values, int size) {
 }
 
 bool set::has(int value) const {
-    return bag ? bag->has(value) : false;
+    if (bag) {
+        return bag->has(value);
+    } else {
+        return false;
+    }
 }
 
 void set::print() const{

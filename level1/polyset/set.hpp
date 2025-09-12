@@ -10,6 +10,7 @@ class set {
     searchablebag* bag;
 
     public:
+    set();
     set(searchablebag* bag);
     set(const set& other);
     virtual ~set();

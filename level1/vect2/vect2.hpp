@@ -34,12 +34,12 @@ class vect2
 
     vect2 operator-() const;
 
-    vect2 operator+(int i);
+    vect2 operator+(int i)const;
     vect2 operator+(const vect2& other) const;
-    vect2 operator-(int i);
-    vect2 operator-(const vect2& other);
+    vect2 operator-(int i)const;
+    vect2 operator-(const vect2& other)const;
     vect2 operator*(const int i)const;
-    vect2 operator*(const vect2& other);
+    vect2 operator*(const vect2& other)const;
 
     bool operator==(const vect2& other);
     bool operator!=(const vect2& other);

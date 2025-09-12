@@ -15,7 +15,7 @@ treebag::~treebag() {
 treebag& treebag::operator=(const treebag& other) {
     if(this != &other) {
         clear();
-        root = other.root;
+        root = copy_node(other.root);
     }
     return *this;
 }

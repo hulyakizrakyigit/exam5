@@ -337,6 +337,21 @@
 // }
 
 #include "bigint.hpp"
+#include <sstream>
+
+// Güvenli string to unsigned int dönüşümü
+unsigned int stringToUINT(const std::string& str) {
+    if (str.empty()) return 0;
+ 
+    std::stringstream ss(str);
+    unsigned int res = 0;
+    ss >> res;
+    
+    // Eğer stringstream başarısız olursa 0 döndür
+    if (ss.fail()) return 0;
+    
+    return res;
+}
 
 // Constructors
 bigint::bigint(): val("0") {}
@@ -421,10 +436,13 @@ bigint& bigint::operator++() {
 // Comparisons
 bool bigint::operator==(const bigint& b) const { return val == b.val; }
 bool bigint::operator!=(const bigint& b) const { return val != b.val; }
+
+
 bool bigint::operator<(const bigint& b) const {
     if (val.size() != b.val.size()) return val.size() < b.val.size();
     return val < b.val;
 }
+
 bool bigint::operator>(const bigint& b) const { return b < *this; }
 bool bigint::operator<=(const bigint& b) const { return !(b < *this); }
 bool bigint::operator>=(const bigint& b) const { return !(*this < b); }
@@ -440,14 +458,45 @@ bigint bigint::operator>>(unsigned int n) {
 }
 
 bigint bigint::operator<<(const bigint& b) {
-    unsigned int n = std::stoul(b.val);
+    unsigned int n = stringToUINT(b.val);
     return *this << n;
 }
 
 bigint bigint::operator>>(const bigint& b) {
-    unsigned int n = std::stoul(b.val);
+    unsigned int n = stringToUINT(b.val);
     return *this >> n;
 }
+
+// ALTERNATIVE IMPLEMENTATION - Manual string to int conversion without std::stoul limitation:
+// #include <climits> // UINT_MAX için gerekli
+// 
+// bigint bigint::operator<<(const bigint& b) {
+//     // Manuel string to unsigned int dönüşümü
+//     unsigned int n = 0;
+//     for (char c : b.val) {
+//         if (n > (UINT_MAX - (c - '0')) / 10) {
+//             // Overflow koruması - çok büyükse maximum değer kullan
+//             n = UINT_MAX;
+//             break;
+//         }
+//         n = n * 10 + (c - '0');
+//     }
+//     return *this << n;
+// }
+// 
+// bigint bigint::operator>>(const bigint& b) {
+//     // Manuel string to unsigned int dönüşümü
+//     unsigned int n = 0;
+//     for (char c : b.val) {
+//         if (n > (UINT_MAX - (c - '0')) / 10) {
+//             // Overflow koruması - çok büyükse maximum değer kullan
+//             n = UINT_MAX;
+//             break;
+//         }
+//         n = n * 10 + (c - '0');
+//     }
+//     return *this >> n;
+// }
 
 bigint& bigint::operator<<=(unsigned int i) { *this = *this << i; return *this; }
 bigint& bigint::operator>>=(unsigned int i) { *this = *this >> i; return *this; }
@@ -455,5 +504,5 @@ bigint& bigint::operator<<=(const bigint& b) { *this = *this << b; return *this;
 bigint& bigint::operator>>=(const bigint& b) { *this = *this >> b; return *this; }
 
 // Print
-void bigint::print(std::ostream& os) const { os << val; }
+void bigint::print(std::ostream& os) const { os << val; }//std::endl
 std::ostream& operator<<(std::ostream& os, const bigint& b) { b.print(os); return os; }

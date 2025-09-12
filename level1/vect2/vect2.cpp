@@ -110,12 +110,12 @@ vect2 vect2::operator-()const{
     return vect2(-(this->x), -(this->y));
 }
 
-vect2 vect2::operator+(int i) {
+vect2 vect2::operator+(int i)const {
     vect2 vect(x + i, y + i);
     return vect;
 }
 
-vect2 vect2::operator-(int i) {
+vect2 vect2::operator-(int i)const {
     vect2 vect(x - i, y - i);
     return vect;
 }
@@ -130,12 +130,12 @@ vect2 vect2::operator+(const vect2& other) const {
     return vect;
 }
 
-vect2 vect2::operator-(const vect2& other) {
+vect2 vect2::operator-(const vect2& other)const {
     vect2 vect(x - other.x, y - other.y);
     return vect;
 }
 
-vect2 vect2::operator*(const vect2& other) {
+vect2 vect2::operator*(const vect2& other)const {
     vect2 vect(x * other.x, y * other.y);
     return vect;
 }
