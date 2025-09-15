@@ -3,12 +3,6 @@
 #include <stdio.h>
 #include <fcntl.h>
 
-/*
- * This program supports both formats for the first line of the map:
- * - Combined:   9.ox
- * - Spaced:     9 . o x
- * The parser will correctly extract the row count and the three map characters in both cases.
- */
 
 typedef struct s_map {
     int row;
@@ -20,91 +14,83 @@ typedef struct s_map {
 } t_map;
 
 // Helper function to check if character is whitespace (excluding newline for first line parsing)
-int is_whitespace(char c) {
-    return (c == ' ' || c == '\t' || c == '\r' || 
-            c == '\v' || c == '\f');
-}
+
 
 // Helper function to check if character is printable
 int is_printable(char c) {
     return (c >= 32 && c <= 126);
 }
 
+// int init_map(t_map *map, FILE *file) {
+//     if (!file || !map)
+//         return (0);
+    
+//     char *line = NULL;
+//     size_t len = 0;
+    
+//     if (getline(&line, &len, file) == -1) {
+//         free(line);
+//         return (0);
+//     }
+    
+//     // Parse: "9.ox" or "9 . o x" format
+//     char *ptr = line;
+//     map->row = 0;
+    
+//     // Manual string to integer conversion
+//     while (*ptr >= '0' && *ptr <= '9') {
+//         map->row = map->row * 10 + (*ptr - '0');
+//         ptr++;
+//     }
+    
+//     if (map->row <= 0) {
+//         free(line);
+//         return (0);
+//     }
+    
+//     // Skip whitespace and parse 3 characters
+//     while (is_whitespace(*ptr)) ptr++;
+//     map->empty = *ptr++;
+//     while (is_whitespace(*ptr)) ptr++;
+//     map->obst = *ptr++;
+//     while (is_whitespace(*ptr)) ptr++;
+//     map->full = *ptr;
+    
+//     free(line);
+    
+//     // Validate: all different, non-null, and printable
+//     return (map->empty && map->obst && map->full && 
+//             map->empty != map->obst && map->empty != map->full && map->obst != map->full &&
+//             is_printable(map->empty) && is_printable(map->obst) && is_printable(map->full));
+// }
+
+
+
 int init_map(t_map *map, FILE *file) {
     if (!file || !map)
-        return (0);
-    
+        return 0;
     char *line = NULL;
     size_t len = 0;
-    
     if (getline(&line, &len, file) == -1) {
         free(line);
-        return (0);
+        return 0;
     }
-    
-    // Parse: "9.ox" or "9 . o x" format
-    char *ptr = line;
+    printf("[DEBUG] header line: '%s'\n", line);
+    int i = 0;
     map->row = 0;
-    
-    // Manual string to integer conversion
-    while (*ptr >= '0' && *ptr <= '9') {
-        map->row = map->row * 10 + (*ptr - '0');
-        ptr++;
+    while (line[i] >= '0' && line[i] <= '9') {
+        map->row = map->row * 10 + (line[i] - '0');
+        i++;
     }
-    
-    // Satır sayısı sıfır veya negatifse harita geçersiz kabul edilir (invalid map)
-    if (map->row <= 0) {
-        free(line);
-        return (0);
-    }
-    
-    // Skip whitespace and parse 3 characters
-    while (is_whitespace(*ptr)) ptr++;
-    map->empty = *ptr++;
-    while (is_whitespace(*ptr)) ptr++;
-    map->obst = *ptr++;
-    while (is_whitespace(*ptr)) ptr++;
-    map->full = *ptr;
-    
+    map->empty = line[i++];
+    map->obst  = line[i++];
+    map->full  = line[i++];
+    printf("[DEBUG] row: %d, empty: '%c', obst: '%c', full: '%c'\n", map->row, map->empty, map->obst, map->full);
     free(line);
-    
-    // Validate: all different, non-null, and printable
-    return (map->empty && map->obst && map->full && 
+    return (map->row > 0 && map->empty && map->obst && map->full &&
             map->empty != map->obst && map->empty != map->full && map->obst != map->full &&
             is_printable(map->empty) && is_printable(map->obst) && is_printable(map->full));
 }
-
-/*
- * Eğer sadece birleşik format (ör: 9.ox) desteklenecekse,
- * init_map fonksiyonu aşağıdaki gibi çok daha basit yazılabilir:
- *
- * int init_map_compact(t_map *map, FILE *file) {
- *     if (!file || !map)
- *         return 0;
- *     char *line = NULL;
- *     size_t len = 0;
- *     if (getline(&line, &len, file) == -1) {
- *         free(line);
- *         return 0;
- *     }
- *     // Satır sayısını oku
- *     int i = 0;
- *     map->row = 0;
- *     while (line[i] >= '0' && line[i] <= '9') {
- *         map->row = map->row * 10 + (line[i] - '0');
- *         i++;
- *     }
- *     // Karakterler
- *     map->empty = line[i++];
- *     map->obst  = line[i++];
- *     map->full  = line[i++];
- *     free(line);
- *     // Karakterlerin farklı ve printable olması kontrolü eklenmeli
- *     return (map->row > 0 && map->empty && map->obst && map->full &&
- *             map->empty != map->obst && map->empty != map->full && map->obst != map->full &&
- *             is_printable(map->empty) && is_printable(map->obst) && is_printable(map->full));
- * }
- */
 
 int read_grid(t_map *map, FILE *file) {
     if (!map || !file)
