@@ -51,7 +51,6 @@ void free_map(t_map *map) {
             free(line);
             return 0;
         }
-        if (read > 0 && line[read-1] == '\n') line[--read] = '\0';
         int i = 0;
         map->row = 0;
         while (line[i] >= '0' && line[i] <= '9') {
@@ -64,6 +63,11 @@ void free_map(t_map *map) {
         map->obst = line[i++];
         while (line[i] == ' ' || line[i] == '\t') i++;
         map->full = line[i++];
+        // En sonda karakterlerin eksik olup olmadığını kontrol et
+        if (!map->empty || !map->obst || !map->full) {
+            free(line);
+            return 0;
+        }
         free(line);
         if (map->row <= 0 || !is_printable(map->empty) || !is_printable(map->obst) || !is_printable(map->full) ||
             map->empty == map->obst || map->empty == map->full || map->obst == map->full)
@@ -72,10 +76,11 @@ void free_map(t_map *map) {
     }
 
 
-// Harita satırlarını oku (son satırda newline olmasa da çalışır)
 int read_grid(t_map *map, FILE *file) {
+
     map->grid = calloc(map->row + 1, sizeof(char *));
-    if (!map->grid) return 0;
+    if (!map->grid) 
+        return 0;
     char *line = NULL;
     size_t len = 0;
     for (int i = 0; i < map->row; i++) {
@@ -85,20 +90,24 @@ int read_grid(t_map *map, FILE *file) {
             free_map(map);
             return 0;
         }
-        int has_newline = (read > 0 && line[read-1] == '\n');
-        if (has_newline) read--;
-        if (i == 0) map->col = read;
-        else if (read != map->col) {
+    int has_newline = (read > 0 && line[read-1] == '\n');
+    if (has_newline)
+        read--; // newline karakterini çıkar
+
+    if (i == 0)
+        map->col = read;
+    else if (read != map->col) {
+        free(line);
+        free_map(map);
+        return 0;
+    }
+    // Son satır hariç, her satırda newline olmalı
+    if (i < map->row - 1 && !has_newline) {
             free(line);
             free_map(map);
             return 0;
         }
-        // Satır sonunda newline kontrolü: Son satır hariç tüm satırlarda olmalı
-        if (i < map->row - 1 && !has_newline) {
-            free(line);
-            free_map(map);
-            return 0;
-        }
+
         map->grid[i] = malloc(map->col + 1);
         if (!map->grid[i]) {
             free(line);
@@ -106,7 +115,7 @@ int read_grid(t_map *map, FILE *file) {
             return 0;
         }
         for (int j = 0; j < map->col; j++) {
-            // map->empty karakteri space (' ') olabilir, bu yüzden doğrudan karşılaştırma yapılmalı
+            // map->empty karakteri boşluk (' ') olabilir, doğrudan karşılaştır
             if (line[j] != map->empty && line[j] != map->obst) {
                 free(line);
                 free_map(map);
@@ -117,7 +126,17 @@ int read_grid(t_map *map, FILE *file) {
         map->grid[i][map->col] = '\0';
     }
     free(line);
-    map->grid[map->row] = NULL; // NULL sonlandırıcı
+    map->grid[map->row] = NULL; // NULL ile sonlandır
+    // Fazladan satır kontrolü
+    char *extra_line = NULL;
+    size_t extra_len = 0;
+    ssize_t extra_read = getline(&extra_line, &extra_len, file);
+    if (extra_read != -1) {
+        free(extra_line);
+        free_map(map);
+        return 0;
+    }
+    free(extra_line);
     return 1;
 }
 
@@ -128,6 +147,8 @@ int min3(int a, int b, int c) {
 }
 void find_biggest_square(t_map *map) {
     int max_size = 0, best_top = 0, best_left = 0;
+              printf("%d %d %d\n", i, j, dp[i][j]);
+            printf("Best: size=%d top=%d left=%d\n", max_size, best_top, best_left);
     int **dp = calloc(map->row, sizeof(int*));
     for (int i = 0; i < map->row; i++)
         dp[i] = calloc(map->col, sizeof(int));
@@ -141,11 +162,12 @@ void find_biggest_square(t_map *map) {
                 int top = i - dp[i][j] + 1;
                 int left = j - dp[i][j] + 1;
                 if (dp[i][j] > max_size ||
-                    (dp[i][j] == max_size && (top < best_top || (top == best_top && left < best_left)))) {
+                    (dp[i][j] == max_size && top < best_top) || (top == best_top && left < best_left)) {
                     max_size = dp[i][j];
                     best_top = top;
                     best_left = left;
                 }
+
             }
         }
     }
@@ -153,6 +175,7 @@ void find_biggest_square(t_map *map) {
     for (int i = best_top; i < best_top + max_size; i++)
         for (int j = best_left; j < best_left + max_size; j++)
             map->grid[i][j] = map->full;
+
     for (int i = 0; i < map->row; i++) free(dp[i]);
     free(dp);
 }
