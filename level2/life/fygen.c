@@ -23,6 +23,7 @@ void game_of_life_iteration(char **board, int width, int height) {
     // Create new board
     for (int i = 0; i < height; i++) {
         new_board[i] = malloc(width + 1);
+        
         for (int j = 0; j < width; j++) {
             int neighbors = count_neighbors(board, width, height, j, i);
             

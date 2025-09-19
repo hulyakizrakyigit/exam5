@@ -177,7 +177,8 @@ int main(int argc, char **argv) {
         for (int i = 1; i < argc; i++) {
             if (process_file(argv[i]))
                 fprintf(stderr, "map error\n");
-            if (i < argc - 1) fputs("\n", stdout);
+            if (i < argc - 1) 
+                fputs("\n", stdout);
         }
     }
     return 0;
